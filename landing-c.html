@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlowChat — AI Chat Agents Powered by n8n</title>
+
+  <!-- Plus Jakarta Sans: geometric, premium SaaS — deliberately not Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ─────────────────────────────────────────
+       DESIGN TOKENS
+       All values sourced from here — never magic numbers
+    ───────────────────────────────────────── */
+    :root {
+      /* Color system */
+      --clr-bg:          #FAFAF9;          /* warm off-white base */
+      --clr-surface:     #FFFFFF;
+      --clr-border:      #EBEBEB;
+      --clr-text-primary:   #1A1523;      /* near-black with slight purple tint */
+      --clr-text-secondary: #6B6578;
+      --clr-text-muted:     #9E97AB;
+
+      /* Accent — deep violet for CTAs; anchors the warm gradient */
+      --clr-accent:      #5B3CF5;
+      --clr-accent-dark: #4229D9;
+      --clr-accent-light:#EAE6FE;
+
+      /* Hero gradient: amber → rose → lavender */
+      --grad-hero: linear-gradient(135deg,
+        #FFD6B0 0%,
+        #F9A8C9 40%,
+        #C9B8FF 100%
+      );
+
+      /* Card gradient for featured pricing tier */
+      --grad-card: linear-gradient(145deg, #5B3CF5 0%, #9B72F8 100%);
+
+      /* Typography */
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+      /* Type scale (fluid-ish, clamped) */
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+      --text-6xl:  3.75rem;
+
+      /* Spacing scale */
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+      --space-24: 6rem;
+      --space-32: 8rem;
+
+      /* Radii */
+      --radius-sm:  6px;
+      --radius-md:  12px;
+      --radius-lg:  20px;
+      --radius-xl:  28px;
+      --radius-full: 9999px;
+
+      /* Shadows */
+      --shadow-sm:  0 1px 3px rgba(26,21,35,0.06), 0 1px 2px rgba(26,21,35,0.04);
+      --shadow-md:  0 4px 16px rgba(26,21,35,0.08), 0 2px 6px rgba(26,21,35,0.05);
+      --shadow-lg:  0 12px 40px rgba(26,21,35,0.10), 0 4px 12px rgba(26,21,35,0.06);
+      --shadow-xl:  0 24px 60px rgba(91,60,245,0.16), 0 8px 24px rgba(26,21,35,0.08);
+
+      /* Transitions */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --dur-fast: 160ms;
+      --dur-base: 240ms;
+      --dur-slow: 360ms;
+    }
+
+    /* ─────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--clr-bg);
+      color: var(--clr-text-primary);
+      font-size: var(--text-base);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img { display: block; max-width: 100%; }
+
+    ul { list-style: none; }
+
+    /* ─────────────────────────────────────────
+       UTILITY CLASSES
+    ───────────────────────────────────────── */
+    .container {
+      width: 100%;
+      max-width: 1160px;
+      margin-inline: auto;
+      padding-inline: var(--space-6);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Entrance animations — CSS only, no JS required */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.94); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Typing dots animation for chat mock */
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40%            { opacity: 1;   transform: scale(1); }
+    }
+
+    /* Subtle float for the chat card */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(-1deg); }
+      50%       { transform: translateY(-8px) rotate(-1deg); }
+    }
+
+    /* ─────────────────────────────────────────
+       NAVBAR
+    ───────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      /* Glass morphism: readable on the gradient hero */
+      background: rgba(250, 250, 249, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(235,235,235,0.6);
+    }
+
+    .nav__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    /* Logo: wordmark — two-tone color signals product quality */
+    .nav__logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: 800;
+      font-size: var(--text-xl);
+      letter-spacing: -0.03em;
+      color: var(--clr-text-primary);
+    }
+
+    .nav__logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--grad-card);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: var(--text-base);
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .nav__logo span { color: var(--clr-accent); }
+
+    .nav__links {
+      display: flex;
+      align-items: center;
+      gap: var(--space-8);
+    }
+
+    .nav__link {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--clr-text-secondary);
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+
+    .nav__link:hover { color: var(--clr-text-primary); }
+
+    .nav__actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .nav__signin {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--clr-text-secondary);
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+
+    .nav__signin:hover { color: var(--clr-text-primary); }
+
+    /* ─────────────────────────────────────────
+       BUTTON SYSTEM
+    ───────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: var(--text-sm);
+      line-height: 1;
+      border: none;
+      cursor: pointer;
+      border-radius: var(--radius-full);
+      transition:
+        transform var(--dur-fast) var(--ease-out),
+        box-shadow var(--dur-fast) var(--ease-out),
+        background var(--dur-fast) var(--ease-out);
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--clr-accent);
+      outline-offset: 3px;
+    }
+
+    .btn--primary {
+      background: var(--clr-accent);
+      color: #fff;
+      padding: 11px var(--space-5);
+      box-shadow: 0 2px 8px rgba(91,60,245,0.30);
+    }
+
+    .btn--primary:hover {
+      background: var(--clr-accent-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(91,60,245,0.38);
+    }
+
+    .btn--primary:active { transform: translateY(0); }
+
+    .btn--primary-lg {
+      font-size: var(--text-base);
+      padding: 15px var(--space-8);
+      box-shadow: 0 4px 16px rgba(91,60,245,0.32);
+    }
+
+    .btn--primary-lg:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(91,60,245,0.40);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--clr-text-secondary);
+      padding: 11px var(--space-5);
+      border: 1.5px solid var(--clr-border);
+    }
+
+    .btn--ghost:hover {
+      border-color: var(--clr-accent);
+      color: var(--clr-accent);
+      transform: translateY(-1px);
+    }
+
+    .btn--ghost-lg {
+      font-size: var(--text-base);
+      padding: 14px var(--space-8);
+    }
+
+    .btn--white {
+      background: #fff;
+      color: var(--clr-accent);
+      padding: 15px var(--space-8);
+      font-size: var(--text-base);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn--white:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* ─────────────────────────────────────────
+       HERO SECTION
+    ───────────────────────────────────────── */
+    .hero {
+      /* The defining visual decision: warm-to-cool gradient */
+      background: var(--grad-hero);
+      padding: var(--space-20) 0 var(--space-16);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Subtle texture overlay to prevent gradient from feeling flat */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(255,255,255,0.18) 0%, transparent 60%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.22) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-16);
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      background: rgba(255,255,255,0.65);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.8);
+      border-radius: var(--radius-full);
+      padding: var(--space-2) var(--space-4);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--clr-text-primary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-5);
+      animation: fadeIn 0.6s var(--ease-out) both;
+    }
+
+    .hero__badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e; /* green — signals "live / active" */
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.25);
+    }
+
+    .hero__headline {
+      font-size: clamp(var(--text-4xl), 5vw, var(--text-6xl));
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      color: var(--clr-text-primary);
+      margin-bottom: var(--space-5);
+      animation: fadeUp 0.7s var(--ease-out) 0.1s both;
+    }
+
+    /* Accent underline on the keyword — draws the eye to the value prop */
+    .hero__headline mark {
+      background: none;
+      color: var(--clr-accent);
+      position: relative;
+    }
+
+    .hero__headline mark::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0; right: 0;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--clr-accent), #9B72F8);
+      opacity: 0.5;
+    }
+
+    .hero__sub {
+      font-size: var(--text-lg);
+      font-weight: 400;
+      color: rgba(26,21,35,0.70);
+      line-height: 1.65;
+      max-width: 480px;
+      margin-bottom: var(--space-8);
+      animation: fadeUp 0.7s var(--ease-out) 0.2s both;
+    }
+
+    .hero__cta-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      animation: fadeUp 0.7s var(--ease-out) 0.3s both;
+    }
+
+    .hero__cta-note {
+      font-size: var(--text-xs);
+      color: rgba(26,21,35,0.50);
+      font-weight: 500;
+    }
+
+    /* ─────────────────────────────────────────
+       MOCK CHAT UI — built entirely in HTML/CSS
+       Represents the actual product in use
+    ───────────────────────────────────────── */
+    .chat-preview {
+      /* Float animation makes it feel alive without being distracting */
+      animation:
+        scaleIn 0.8s var(--ease-out) 0.2s both,
+        float 5s ease-in-out 1.2s infinite;
+      transform-origin: center;
+    }
+
+    .chat-window {
+      background: var(--clr-surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.9);
+      max-width: 420px;
+      margin-left: auto;
+    }
+
+    /* Window chrome — the three dots make it feel like a real app */
+    .chat-window__chrome {
+      background: #F4F4F2;
+      border-bottom: 1px solid var(--clr-border);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .chrome__dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .chrome__dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .chrome__dot--red    { background: #FF5F57; }
+    .chrome__dot--yellow { background: #FFBD2E; }
+    .chrome__dot--green  { background: #28C840; }
+
+    .chrome__title {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--clr-text-muted);
+      margin-left: var(--space-2);
+    }
+
+    .chrome__status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: #22c55e;
+    }
+
+    .chrome__status-dot {
+      width: 6px;
+      height: 6px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.2);
+    }
+
+    /* Chat message body */
+    .chat-window__body {
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      background: #FAFAF9;
+      min-height: 280px;
+    }
+
+    .chat-msg {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-2);
+      animation: fadeUp 0.5s var(--ease-out) both;
+    }
+
+    .chat-msg--user { flex-direction: row-reverse; }
+
+    .chat-msg__avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .chat-msg__avatar--bot {
+      background: var(--grad-card);
+      color: #fff;
+    }
+
+    .chat-msg__avatar--user {
+      background: linear-gradient(135deg, #FFD6B0, #F9A8C9);
+      color: var(--clr-text-primary);
+    }
+
+    .chat-msg__bubble {
+      max-width: 72%;
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-lg);
+      font-size: var(--text-sm);
+      line-height: 1.5;
+      font-weight: 450;
+    }
+
+    .chat-msg--bot .chat-msg__bubble {
+      background: var(--clr-surface);
+      color: var(--clr-text-primary);
+      border: 1px solid var(--clr-border);
+      border-bottom-left-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chat-msg--user .chat-msg__bubble {
+      background: var(--clr-accent);
+      color: #fff;
+      border-bottom-right-radius: var(--radius-sm);
+    }
+
+    /* Typing indicator */
+    .chat-typing {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      animation: fadeUp 0.5s var(--ease-out) 0.8s both;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-lg);
+      border-bottom-left-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--clr-text-muted);
+      border-radius: 50%;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Chat input bar */
+    .chat-window__input {
+      padding: var(--space-3) var(--space-4);
+      border-top: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      background: var(--clr-surface);
+    }
+
+    .chat-input-field {
+      flex: 1;
+      background: var(--clr-bg);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-full);
+      padding: var(--space-2) var(--space-4);
+      font-size: var(--text-sm);
+      font-family: var(--font-sans);
+      color: var(--clr-text-muted);
+      outline: none;
+    }
+
+    .chat-send-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--clr-accent);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* n8n workflow tag — signals the product integration */
+    .chat-workflow-tag {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--clr-accent-light);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--clr-accent);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-2);
+      width: fit-content;
+    }
+
+    /* ─────────────────────────────────────────
+       SOCIAL PROOF STRIP
+       Text-based logos with smart styling — implies brand recognition
+    ───────────────────────────────────────── */
+    .social-proof {
+      padding: var(--space-12) 0;
+      border-bottom: 1px solid var(--clr-border);
+    }
+
+    .social-proof__label {
+      text-align: center;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--clr-text-muted);
+      margin-bottom: var(--space-6);
+    }
+
+    .social-proof__logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: var(--space-10);
+    }
+
+    /* Each "logo" is styled text with unique typographic personality */
+    .logo-item {
+      font-weight: 800;
+      font-size: var(--text-lg);
+      color: var(--clr-text-muted);
+      letter-spacing: -0.03em;
+      opacity: 0.55;
+      transition: opacity var(--dur-base) var(--ease-out);
+      user-select: none;
+    }
+
+    .logo-item:hover { opacity: 0.85; }
+
+    /* Give each logo a distinct visual character */
+    .logo-item--serif       { font-style: italic; letter-spacing: 0; }
+    .logo-item--mono        { font-family: 'Courier New', monospace; font-size: var(--text-base); letter-spacing: 0.05em; }
+    .logo-item--condensed   { letter-spacing: -0.06em; font-size: var(--text-xl); }
+    .logo-item--light       { font-weight: 300; letter-spacing: 0.08em; text-transform: uppercase; font-size: var(--text-sm); }
+    .logo-item--rounded     { letter-spacing: 0.02em; }
+
+    /* ─────────────────────────────────────────
+       FEATURES SECTION
+    ───────────────────────────────────────── */
+    .features {
+      padding: var(--space-24) 0;
+    }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--clr-accent);
+      margin-bottom: var(--space-4);
+    }
+
+    .section-label::before {
+      content: '';
+      display: block;
+      width: 16px;
+      height: 2px;
+      background: var(--clr-accent);
+      border-radius: 1px;
+    }
+
+    .section-headline {
+      font-size: clamp(var(--text-3xl), 4vw, var(--text-5xl));
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      color: var(--clr-text-primary);
+      margin-bottom: var(--space-5);
+      max-width: 600px;
+    }
+
+    .section-sub {
+      font-size: var(--text-lg);
+      color: var(--clr-text-secondary);
+      line-height: 1.65;
+      max-width: 520px;
+      margin-bottom: var(--space-16);
+    }
+
+    .features__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-6);
+    }
+
+    .feature-card {
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      transition:
+        transform var(--dur-base) var(--ease-out),
+        box-shadow var(--dur-base) var(--ease-out),
+        border-color var(--dur-base) var(--ease-out);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(91,60,245,0.2);
+    }
+
+    .feature-card__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-5);
+      font-size: 22px;
+    }
+
+    /* Each feature gets a different warm-tone icon background */
+    .feature-card__icon--amber  { background: #FFF3E0; }
+    .feature-card__icon--rose   { background: #FCE4EC; }
+    .feature-card__icon--violet { background: var(--clr-accent-light); }
+
+    .feature-card__title {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--clr-text-primary);
+      margin-bottom: var(--space-3);
+    }
+
+    .feature-card__desc {
+      font-size: var(--text-base);
+      color: var(--clr-text-secondary);
+      line-height: 1.65;
+    }
+
+    .feature-card__link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      margin-top: var(--space-5);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--clr-accent);
+      transition: gap var(--dur-fast) var(--ease-out);
+    }
+
+    .feature-card__link:hover { gap: var(--space-2); }
+
+    /* ─────────────────────────────────────────
+       PRICING SECTION
+    ───────────────────────────────────────── */
+    .pricing {
+      padding: var(--space-24) 0;
+      background: linear-gradient(180deg, var(--clr-bg) 0%, #F0EDFF 100%);
+    }
+
+    .pricing__header {
+      text-align: center;
+      margin-bottom: var(--space-12);
+    }
+
+    .pricing__grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-6);
+      max-width: 820px;
+      margin-inline: auto;
+    }
+
+    .pricing-card {
+      background: var(--clr-surface);
+      border: 1.5px solid var(--clr-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      position: relative;
+      transition:
+        transform var(--dur-base) var(--ease-out),
+        box-shadow var(--dur-base) var(--ease-out);
+    }
+
+    .pricing-card:hover { transform: translateY(-3px); }
+
+    /* Featured card: uses the accent gradient — immediately draws the eye */
+    .pricing-card--featured {
+      background: var(--grad-card);
+      border-color: transparent;
+      box-shadow: var(--shadow-xl);
+      color: #fff;
+    }
+
+    .pricing-card--featured:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 32px 64px rgba(91,60,245,0.25), 0 8px 24px rgba(26,21,35,0.1);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, #FF8C42, #E8558A);
+      color: #fff;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: var(--space-1) var(--space-4);
+      border-radius: var(--radius-full);
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(232,85,138,0.35);
+    }
+
+    .pricing-card__tier {
+      font-size: var(--text-sm);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-4);
+    }
+
+    .pricing-card--featured .pricing-card__tier { color: rgba(255,255,255,0.75); }
+    .pricing-card:not(.pricing-card--featured) .pricing-card__tier { color: var(--clr-text-muted); }
+
+    .pricing-card__price {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-1);
+      margin-bottom: var(--space-2);
+    }
+
+    .price-currency {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      padding-bottom: 6px;
+    }
+
+    .price-amount {
+      font-size: var(--text-5xl);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .price-period {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding-bottom: 8px;
+      opacity: 0.65;
+    }
+
+    .pricing-card__desc {
+      font-size: var(--text-sm);
+      line-height: 1.6;
+      margin-bottom: var(--space-6);
+    }
+
+    .pricing-card--featured .pricing-card__desc { color: rgba(255,255,255,0.80); }
+    .pricing-card:not(.pricing-card--featured) .pricing-card__desc { color: var(--clr-text-secondary); }
+
+    .pricing-divider {
+      height: 1px;
+      margin-bottom: var(--space-6);
+    }
+
+    .pricing-card--featured .pricing-divider { background: rgba(255,255,255,0.15); }
+    .pricing-card:not(.pricing-card--featured) .pricing-divider { background: var(--clr-border); }
+
+    .pricing-features {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      margin-bottom: var(--space-8);
+    }
+
+    .pricing-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      font-size: var(--text-sm);
+      line-height: 1.5;
+    }
+
+    .pricing-feature--featured { color: rgba(255,255,255,0.90); }
+    .pricing-feature:not(.pricing-feature--featured) { color: var(--clr-text-secondary); }
+
+    .pricing-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .pricing-check--featured {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
+    .pricing-check--default {
+      background: var(--clr-accent-light);
+      color: var(--clr-accent);
+    }
+
+    .btn--pricing-featured {
+      width: 100%;
+      padding: 14px;
+      font-size: var(--text-base);
+      background: #fff;
+      color: var(--clr-accent);
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      transition:
+        transform var(--dur-fast) var(--ease-out),
+        box-shadow var(--dur-fast) var(--ease-out);
+    }
+
+    .btn--pricing-featured:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+
+    .btn--pricing-default {
+      width: 100%;
+      padding: 14px;
+      font-size: var(--text-base);
+      background: transparent;
+      color: var(--clr-accent);
+      border: 1.5px solid var(--clr-accent);
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      transition:
+        background var(--dur-fast) var(--ease-out),
+        transform var(--dur-fast) var(--ease-out);
+    }
+
+    .btn--pricing-default:hover {
+      background: var(--clr-accent-light);
+      transform: translateY(-1px);
+    }
+
+    .pricing__footer-note {
+      text-align: center;
+      margin-top: var(--space-8);
+      font-size: var(--text-sm);
+      color: var(--clr-text-muted);
+    }
+
+    /* ─────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────── */
+    .footer {
+      background: var(--clr-text-primary);
+      color: rgba(255,255,255,0.65);
+      padding: var(--space-16) 0 var(--space-8);
+    }
+
+    .footer__inner {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--space-10);
+      margin-bottom: var(--space-12);
+    }
+
+    .footer__brand-name {
+      font-weight: 800;
+      font-size: var(--text-xl);
+      color: #fff;
+      letter-spacing: -0.03em;
+      margin-bottom: var(--space-3);
+    }
+
+    .footer__brand-name span { color: #9B72F8; }
+
+    .footer__brand-desc {
+      font-size: var(--text-sm);
+      line-height: 1.7;
+      max-width: 260px;
+      margin-bottom: var(--space-6);
+    }
+
+    .footer__social {
+      display: flex;
+      gap: var(--space-3);
+    }
+
+    .footer__social-link {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-sm);
+      color: rgba(255,255,255,0.60);
+      transition:
+        background var(--dur-fast) var(--ease-out),
+        color var(--dur-fast) var(--ease-out);
+    }
+
+    .footer__social-link:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    .footer__col-title {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.90);
+      margin-bottom: var(--space-4);
+    }
+
+    .footer__links {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .footer__link {
+      font-size: var(--text-sm);
+      color: rgba(255,255,255,0.55);
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+
+    .footer__link:hover { color: rgba(255,255,255,0.90); }
+
+    .footer__bottom {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: var(--space-6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+
+    .footer__copyright {
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,0.35);
+    }
+
+    .footer__bottom-links {
+      display: flex;
+      gap: var(--space-6);
+    }
+
+    .footer__bottom-link {
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,0.35);
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+
+    .footer__bottom-link:hover { color: rgba(255,255,255,0.70); }
+
+    /* ─────────────────────────────────────────
+       SCROLL-TRIGGERED REVEAL
+       Intersection Observer enhances the entrance animations
+    ───────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition:
+        opacity 0.6s var(--ease-out),
+        transform 0.6s var(--ease-out);
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal--delay-1 { transition-delay: 0.1s; }
+    .reveal--delay-2 { transition-delay: 0.2s; }
+    .reveal--delay-3 { transition-delay: 0.3s; }
+
+    /* ─────────────────────────────────────────
+       RESPONSIVE BREAKPOINTS
+       Mobile-first — desktop styles override upward
+    ───────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .features__grid { grid-template-columns: repeat(2, 1fr); }
+      .footer__inner  { grid-template-columns: 1fr 1fr; gap: var(--space-8); }
+    }
+
+    @media (max-width: 768px) {
+      .hero__inner {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero__sub    { margin-inline: auto; }
+      .hero__badge  { margin-inline: auto; }
+
+      .hero__cta-group {
+        justify-content: center;
+      }
+
+      .chat-preview {
+        /* Shrink and center the chat mock on mobile */
+        max-width: 360px;
+        margin-inline: auto;
+        animation: scaleIn 0.8s var(--ease-out) 0.2s both;
+      }
+
+      .features__grid      { grid-template-columns: 1fr; }
+      .pricing__grid       { grid-template-columns: 1fr; max-width: 420px; }
+      .nav__links          { display: none; }
+      .footer__inner       { grid-template-columns: 1fr; }
+      .section-headline    { max-width: 100%; }
+      .section-sub         { max-width: 100%; }
+
+      .footer__bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero { padding: var(--space-12) 0; }
+      .social-proof__logos { gap: var(--space-6); }
+      .logo-item { font-size: var(--text-base); }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════
+       NAVBAR
+  ═══════════════════════════════════════ -->
+  <header role="banner">
+    <nav class="nav" aria-label="Main navigation">
+      <div class="container">
+        <div class="nav__inner">
+
+          <!-- Logo wordmark -->
+          <a href="/" class="nav__logo" aria-label="FlowChat home">
+            <div class="nav__logo-icon" aria-hidden="true">F</div>
+            Flow<span>Chat</span>
+          </a>
+
+          <!-- Desktop nav links -->
+          <ul class="nav__links" role="list">
+            <li><a href="#features" class="nav__link">Features</a></li>
+            <li><a href="#pricing"  class="nav__link">Pricing</a></li>
+            <li><a href="#"         class="nav__link">Docs</a></li>
+            <li><a href="#"         class="nav__link">Blog</a></li>
+          </ul>
+
+          <!-- CTA actions -->
+          <div class="nav__actions">
+            <a href="#" class="nav__signin">Sign in</a>
+            <a href="#" class="btn btn--primary">Get Started</a>
+          </div>
+
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ═══════════════════════════════════════
+         HERO
+    ═══════════════════════════════════════ -->
+    <section class="hero" aria-labelledby="hero-headline">
+      <div class="container">
+        <div class="hero__inner">
+
+          <!-- Left: copy -->
+          <div class="hero__copy">
+            <div class="hero__badge">
+              <span class="hero__badge-dot" aria-hidden="true"></span>
+              Powered by n8n Workflows
+            </div>
+
+            <h1 class="hero__headline" id="hero-headline">
+              Deploy AI agents<br>
+              your team will<br>
+              <mark>actually use</mark>
+            </h1>
+
+            <p class="hero__sub">
+              Connect your n8n automation workflows to a beautiful chat interface — no code, no DevOps, no headaches. Live in minutes.
+            </p>
+
+            <div class="hero__cta-group">
+              <a href="#" class="btn btn--primary btn--primary-lg">
+                <!-- Arrow icon inline SVG — no external dependency -->
+                Start for free
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </a>
+              <a href="#" class="btn btn--ghost btn--ghost-lg">Watch demo</a>
+            </div>
+
+            <p class="hero__cta-note" style="margin-top: 12px;">
+              Free forever on Starter &middot; No credit card required
+            </p>
+          </div>
+
+          <!-- Right: mock chat UI -->
+          <div class="chat-preview" aria-hidden="true" role="presentation">
+            <div class="chat-window">
+
+              <!-- Browser chrome -->
+              <div class="chat-window__chrome">
+                <div class="chrome__dots">
+                  <span class="chrome__dot chrome__dot--red"></span>
+                  <span class="chrome__dot chrome__dot--yellow"></span>
+                  <span class="chrome__dot chrome__dot--green"></span>
+                </div>
+                <span class="chrome__title">FlowChat — Support Agent</span>
+                <div class="chrome__status">
+                  <span class="chrome__status-dot"></span>
+                  Live
+                </div>
+              </div>
+
+              <!-- Chat messages -->
+              <div class="chat-window__body">
+
+                <!-- Workflow trigger tag -->
+                <div class="chat-workflow-tag" style="animation: fadeIn 0.4s ease both;">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                    <circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M3 5h4M5 3v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  n8n workflow: customer-support-v2
+                </div>
+
+                <!-- Bot greeting -->
+                <div class="chat-msg chat-msg--bot" style="animation-delay: 0.1s;">
+                  <div class="chat-msg__avatar chat-msg__avatar--bot" aria-label="AI agent">F</div>
+                  <div class="chat-msg__bubble">
+                    Hey there! I'm your AI support agent. How can I help you today?
+                  </div>
+                </div>
+
+                <!-- User message -->
+                <div class="chat-msg chat-msg--user" style="animation-delay: 0.3s;">
+                  <div class="chat-msg__avatar chat-msg__avatar--user" aria-label="User">U</div>
+                  <div class="chat-msg__bubble">
+                    Can I connect my Notion workspace to the workflow?
+                  </div>
+                </div>
+
+                <!-- Bot reply -->
+                <div class="chat-msg chat-msg--bot" style="animation-delay: 0.55s;">
+                  <div class="chat-msg__avatar chat-msg__avatar--bot" aria-label="AI agent">F</div>
+                  <div class="chat-msg__bubble">
+                    Absolutely! FlowChat supports Notion, Slack, Airtable and 400+ more via n8n. I'll walk you through it. ✓
+                  </div>
+                </div>
+
+                <!-- Typing indicator — shows the bot is "thinking" -->
+                <div class="chat-typing">
+                  <div class="chat-msg__avatar chat-msg__avatar--bot" aria-label="AI agent typing">F</div>
+                  <div class="typing-dots" role="status" aria-label="Agent is typing">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Input bar -->
+              <div class="chat-window__input">
+                <input
+                  class="chat-input-field"
+                  type="text"
+                  placeholder="Type a message…"
+                  disabled
+                  aria-label="Chat input (demo)"
+                />
+                <button class="chat-send-btn" aria-label="Send message" disabled>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path d="M1 7h12M7 1l6 6-6 6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         SOCIAL PROOF STRIP
+         Text logos styled to feel like real brand wordmarks
+    ═══════════════════════════════════════ -->
+    <section class="social-proof" aria-label="Companies using FlowChat">
+      <div class="container">
+        <p class="social-proof__label">Trusted by teams at</p>
+        <ul class="social-proof__logos" role="list">
+          <li>
+            <span class="logo-item logo-item--condensed" aria-label="Amplitude">AMPLITUDE</span>
+          </li>
+          <li>
+            <span class="logo-item logo-item--serif" aria-label="Forma">Forma</span>
+          </li>
+          <li>
+            <span class="logo-item logo-item--rounded" aria-label="Reforge">Reforge</span>
+          </li>
+          <li>
+            <span class="logo-item logo-item--mono" aria-label="Raycast">raycast</span>
+          </li>
+          <li>
+            <span class="logo-item logo-item--light" aria-label="Watershed">Watershed</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         FEATURES
+    ═══════════════════════════════════════ -->
+    <section class="features" id="features" aria-labelledby="features-headline">
+      <div class="container">
+
+        <div class="reveal">
+          <div class="section-label">Why FlowChat</div>
+          <h2 class="section-headline" id="features-headline">
+            The fastest path from n8n workflow to live chat agent
+          </h2>
+          <p class="section-sub">
+            Stop duct-taping tools together. FlowChat gives your workflows a face — one your team and customers will love talking to.
+          </p>
+        </div>
+
+        <div class="features__grid">
+
+          <!-- Feature 1 -->
+          <article class="feature-card reveal reveal--delay-1">
+            <div class="feature-card__icon feature-card__icon--amber" aria-hidden="true">
+              <!-- Plug icon: visual metaphor for "connect instantly" -->
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M8 2v5M14 2v5M6 7h10a2 2 0 0 1 2 2v2a6 6 0 0 1-12 0V9a2 2 0 0 1 2-2ZM11 17v3" stroke="#F97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="feature-card__title">Connect in one click</h3>
+            <p class="feature-card__desc">
+              Paste your n8n webhook URL and you're live. No SDK, no server config, no environment variables to wrangle. FlowChat handles the rest.
+            </p>
+            <a href="#" class="feature-card__link">
+              See integrations
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </article>
+
+          <!-- Feature 2 -->
+          <article class="feature-card reveal reveal--delay-2">
+            <div class="feature-card__icon feature-card__icon--rose" aria-hidden="true">
+              <!-- Sparkle icon: visual metaphor for "smart / AI" -->
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M11 3v2M11 17v2M3 11h2M17 11h2M5.6 5.6l1.4 1.4M15 15l1.4 1.4M5.6 16.4l1.4-1.4M15 7l1.4-1.4" stroke="#E8558A" stroke-width="1.8" stroke-linecap="round"/>
+                <circle cx="11" cy="11" r="3" stroke="#E8558A" stroke-width="1.8"/>
+              </svg>
+            </div>
+            <h3 class="feature-card__title">Memory that actually works</h3>
+            <p class="feature-card__desc">
+              Conversations persist across sessions. Your AI agent remembers context, user preferences, and prior interactions — just like a real team member.
+            </p>
+            <a href="#" class="feature-card__link">
+              Explore memory →
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </article>
+
+          <!-- Feature 3 -->
+          <article class="feature-card reveal reveal--delay-3">
+            <div class="feature-card__icon feature-card__icon--violet" aria-hidden="true">
+              <!-- Chart icon: visual metaphor for "analytics" -->
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <rect x="3" y="12" width="4" height="7" rx="1" stroke="#5B3CF5" stroke-width="1.8"/>
+                <rect x="9" y="8"  width="4" height="11" rx="1" stroke="#5B3CF5" stroke-width="1.8"/>
+                <rect x="15" y="4" width="4" height="15" rx="1" stroke="#5B3CF5" stroke-width="1.8"/>
+              </svg>
+            </div>
+            <h3 class="feature-card__title">Analytics built right in</h3>
+            <p class="feature-card__desc">
+              Track conversation volume, resolution rates, and drop-off points. Surface what your customers actually need — without exporting to a spreadsheet.
+            </p>
+            <a href="#" class="feature-card__link">
+              View analytics
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         PRICING
+    ═══════════════════════════════════════ -->
+    <section class="pricing" id="pricing" aria-labelledby="pricing-headline">
+      <div class="container">
+
+        <div class="pricing__header reveal">
+          <div class="section-label" style="justify-content: center;">Pricing</div>
+          <h2 class="section-headline" id="pricing-headline" style="margin-inline: auto; text-align: center;">
+            Simple, honest pricing
+          </h2>
+          <p class="section-sub" style="margin-inline: auto; text-align: center;">
+            Start free. Scale when your team does. No per-seat surprises.
+          </p>
+        </div>
+
+        <div class="pricing__grid">
+
+          <!-- Free tier -->
+          <div class="pricing-card reveal reveal--delay-1">
+            <p class="pricing-card__tier">Starter</p>
+
+            <div class="pricing-card__price">
+              <span class="price-currency">$</span>
+              <span class="price-amount">0</span>
+              <span class="price-period">/ month</span>
+            </div>
+
+            <p class="pricing-card__desc">
+              Everything you need to build your first AI chat agent and share it with your team.
+            </p>
+
+            <div class="pricing-divider"></div>
+
+            <ul class="pricing-features" role="list">
+              <li class="pricing-feature">
+                <span class="pricing-check pricing-check--default" aria-hidden="true">✓</span>
+                1 active chat agent
+              </li>
+              <li class="pricing-feature">
+                <span class="pricing-check pricing-check--default" aria-hidden="true">✓</span>
+                500 messages / month
+              </li>
+              <li class="pricing-feature">
+                <span class="pricing-check pricing-check--default" aria-hidden="true">✓</span>
+                Connect up to 3 n8n workflows
+              </li>
+              <li class="pricing-feature">
+                <span class="pricing-check pricing-check--default" aria-hidden="true">✓</span>
+                Basic conversation history
+              </li>
+              <li class="pricing-feature">
+                <span class="pricing-check pricing-check--default" aria-hidden="true">✓</span>
+                FlowChat subdomain hosting
+              </li>
+            </ul>
+
+            <a href="#" class="btn btn--pricing-default" role="button">Get started free</a>
+          </div>
+
+          <!-- Pro tier — featured / recommended -->
+          <div class="pricing-card pricing-card--featured reveal reveal--delay-2">
+            <div class="pricing-badge" aria-label="Recommended plan">Most popular</div>
+
+            <p class="pricing-card__tier">Pro</p>
+
+            <div class="pricing-card__price">
+              <span class="price-currency" style="color: rgba(255,255,255,0.75);">$</span>
+              <span class="price-amount" style="color: #fff;">49</span>
+              <span class="price-period" style="color: rgba(255,255,255,0.65);">/ month</span>
+            </div>
+
+            <p class="pricing-card__desc">
+              For teams who need unlimited agents, advanced analytics, and priority support.
+            </p>
+
+            <div class="pricing-divider"></div>
+
+            <ul class="pricing-features" role="list">
+              <li class="pricing-feature pricing-feature--featured">
+                <span class="pricing-check pricing-check--featured" aria-hidden="true">✓</span>
+                Unlimited chat agents
+              </li>
+              <li class="pricing-feature pricing-feature--featured">
+                <span class="pricing-check pricing-check--featured" aria-hidden="true">✓</span>
+                Unlimited messages
+              </li>
+              <li class="pricing-feature pricing-feature--featured">
+                <span class="pricing-check pricing-check--featured" aria-hidden="true">✓</span>
+                Unlimited n8n workflows
+              </li>
+              <li class="pricing-feature pricing-feature--featured">
+                <span class="pricing-check pricing-check--featured" aria-hidden="true">✓</span>
+                Persistent memory &amp; context
+              </li>
+              <li class="pricing-feature pricing-feature--featured">
+                <span class="pricing-check pricing-check--featured" aria-hidden="true">✓</span>
+                Full analytics dashboard
+              </li>
+              <li class="pricing-feature pricing-feature--featured">
+                <span class="pricing-check pricing-check--featured" aria-hidden="true">✓</span>
+                Custom domain + white-label
+              </li>
+              <li class="pricing-feature pricing-feature--featured">
+                <span class="pricing-check pricing-check--featured" aria-hidden="true">✓</span>
+                Priority support (1-hour SLA)
+              </li>
+            </ul>
+
+            <a href="#" class="btn btn--pricing-featured" role="button">Start Pro free for 14 days</a>
+          </div>
+
+        </div>
+
+        <p class="pricing__footer-note">
+          All plans include SOC 2-compliant infrastructure &middot;
+          <a href="#" style="color: var(--clr-accent); font-weight: 600;">Need enterprise?</a>
+          Let's talk.
+        </p>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════ -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer__inner">
+
+        <!-- Brand column -->
+        <div>
+          <div class="footer__brand-name">Flow<span>Chat</span></div>
+          <p class="footer__brand-desc">
+            The easiest way to give your n8n workflows a human face. Built for teams who move fast and need tools that keep up.
+          </p>
+          <div class="footer__social" aria-label="Social media links">
+            <a href="#" class="footer__social-link" aria-label="Twitter / X">
+              <!-- X / Twitter icon -->
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1 1l5 5.5L1 13h2l3.8-4.2L10 13h3L8 7l4.7-6h-2L7 5.5 4 1H1Z" fill="currentColor"/>
+              </svg>
+            </a>
+            <a href="#" class="footer__social-link" aria-label="GitHub">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M7 0a7 7 0 0 0-2.21 13.64c.35.064.48-.152.48-.338v-1.18c-1.947.423-2.357-.94-2.357-.94-.318-.808-.777-1.023-.777-1.023-.636-.434.048-.425.048-.425.703.05 1.073.722 1.073.722.624 1.07 1.638.76 2.037.582.063-.452.244-.761.443-.936-1.555-.177-3.19-.777-3.19-3.46 0-.764.273-1.388.72-1.878-.072-.177-.312-.888.069-1.85 0 0 .587-.189 1.923.716A6.7 6.7 0 0 1 7 3.97c.594.003 1.192.08 1.75.235 1.334-.905 1.92-.715 1.92-.715.382.962.142 1.673.07 1.85.449.49.72 1.114.72 1.877 0 2.69-1.638 3.282-3.198 3.455.252.216.476.643.476 1.296v1.92c0 .188.128.406.484.337A7.001 7.001 0 0 0 7 0Z" fill="currentColor"/>
+              </svg>
+            </a>
+            <a href="#" class="footer__social-link" aria-label="LinkedIn">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1.5 4.5H3.5V12.5H1.5V4.5ZM2.5 3.5C3.05 3.5 3.5 3.05 3.5 2.5S3.05 1.5 2.5 1.5 1.5 1.95 1.5 2.5 1.95 3.5 2.5 3.5ZM5 4.5H7V5.5C7.4 4.9 8.1 4.5 9 4.5 10.9 4.5 12 5.6 12 7.5V12.5H10V8C10 6.9 9.55 6 8.5 6S7 6.9 7 8V12.5H5V4.5Z" fill="currentColor"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Product links -->
+        <div>
+          <h3 class="footer__col-title">Product</h3>
+          <ul class="footer__links" role="list">
+            <li><a href="#" class="footer__link">Features</a></li>
+            <li><a href="#" class="footer__link">Pricing</a></li>
+            <li><a href="#" class="footer__link">Changelog</a></li>
+            <li><a href="#" class="footer__link">Roadmap</a></li>
+            <li><a href="#" class="footer__link">Status</a></li>
+          </ul>
+        </div>
+
+        <!-- Developer links -->
+        <div>
+          <h3 class="footer__col-title">Developers</h3>
+          <ul class="footer__links" role="list">
+            <li><a href="#" class="footer__link">Documentation</a></li>
+            <li><a href="#" class="footer__link">API Reference</a></li>
+            <li><a href="#" class="footer__link">n8n Templates</a></li>
+            <li><a href="#" class="footer__link">GitHub</a></li>
+            <li><a href="#" class="footer__link">Community</a></li>
+          </ul>
+        </div>
+
+        <!-- Company links -->
+        <div>
+          <h3 class="footer__col-title">Company</h3>
+          <ul class="footer__links" role="list">
+            <li><a href="#" class="footer__link">About</a></li>
+            <li><a href="#" class="footer__link">Blog</a></li>
+            <li><a href="#" class="footer__link">Careers</a></li>
+            <li><a href="#" class="footer__link">Press</a></li>
+            <li><a href="#" class="footer__link">Contact</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Footer bottom bar -->
+      <div class="footer__bottom">
+        <p class="footer__copyright">
+          &copy; 2026 FlowChat, Inc. All rights reserved.
+        </p>
+        <div class="footer__bottom-links">
+          <a href="#" class="footer__bottom-link">Privacy Policy</a>
+          <a href="#" class="footer__bottom-link">Terms of Service</a>
+          <a href="#" class="footer__bottom-link">Cookie Policy</a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ─────────────────────────────────────────
+       SCROLL REVEAL — Intersection Observer
+       Triggers CSS class on elements as they enter the viewport.
+       CSS does the actual animation — JS only adds the class.
+  ───────────────────────────────────────── -->
+  <script>
+    (function () {
+      'use strict';
+
+      // Select all elements marked for reveal
+      const revealEls = document.querySelectorAll('.reveal');
+
+      if (!revealEls.length) return;
+
+      // IntersectionObserver fires when element reaches 15% visibility
+      const observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              // Unobserve after trigger — avoids repeated re-animation
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15 }
+      );
+
+      revealEls.forEach(function (el) {
+        observer.observe(el);
+      });
+
+      // Navbar shadow on scroll — subtle depth cue
+      var nav = document.querySelector('.nav');
+      var lastScrollY = window.scrollY;
+
+      window.addEventListener('scroll', function () {
+        var scrollY = window.scrollY;
+        if (scrollY > 20) {
+          nav.style.boxShadow = '0 1px 16px rgba(26,21,35,0.08)';
+        } else {
+          nav.style.boxShadow = 'none';
+        }
+        lastScrollY = scrollY;
+      }, { passive: true });
+
+    })();
+  </script>
+
+</body>
+</html>

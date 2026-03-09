@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TERMINAL v1.0</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Matrix rain background -->
+  <canvas id="matrix-rain"></canvas>
+
+  <!-- Scanline overlay -->
+  <div id="scanlines"></div>
+
+  <!-- Chat panel -->
+  <div id="chat-panel">
+    <div id="chat-header">
+      <span id="header-title">TERMINAL v1.0</span>
+      <span id="header-status">&#9632; CONNECTED</span>
+    </div>
+
+    <div id="message-area" aria-live="polite" aria-label="Chat messages"></div>
+
+    <div id="input-row">
+      <span id="prompt-symbol">&gt; _</span>
+      <input
+        id="user-input"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="enter command..."
+        disabled
+        aria-label="Message input"
+      />
+      <button id="send-btn" disabled aria-label="Send message">SEND</button>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
